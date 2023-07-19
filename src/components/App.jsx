@@ -4,25 +4,33 @@ import { nanoid } from 'nanoid';
 import Container from './Container';
 import { AppStyled } from './App.styled';
 import ContactList from './ContactList';
+import { useRef } from 'react';
 
 import Filter from './Filter';
 
 const App = () => {
   const [contacts, setContacts] = useState([]);
   const [filter, setFilter] = useState('');
+  const firstRender = useRef(true); //отложен первый запуск
 
   useEffect(() => {
-    const contacts = JSON.parse(localStorage.getItem('contact'));
-    if (contacts?.length) {
-      setContacts(contacts);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (contacts.length > 0) {
+    if (!firstRender.current) {
+      //пропускаем запись в сторедж при старте
       localStorage.setItem('contact', JSON.stringify(contacts));
     }
   }, [contacts]);
+
+  useEffect(() => {
+    const contacts = JSON.parse(localStorage.getItem('contact'));
+
+    if (contacts?.length) {
+      setContacts(contacts);
+    }
+    setTimeout(() => {
+      //тормоз считывания для дубляжа
+      firstRender.current = false;
+    }, 0);
+  }, []);
 
   const addContact = ({ name, number }) => {
     if (contacts.find(contact => contact.name === name)) {
@@ -34,7 +42,7 @@ const App = () => {
       number,
       id: nanoid(),
     };
-    setContacts([...contacts, newContacts]);
+    setContacts(prevState => [...prevState, newContacts]);
   };
   const removeContact = id => {
     setContacts(prevContacts => prevContacts.filter(item => item.id !== id));
